@@ -1,0 +1,12 @@
+scikit-learn
+numpy
+pandas
+matplotlib
+transformers
+datasets
+bert-for-sequence-classification
+accelerate
+
+#pip install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cu118
+#pip install transformers datasets
+# pip install transformers[torch]

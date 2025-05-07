@@ -1,0 +1,54 @@
+vicente@vicente-BDLab:~/Github/NLP-PubMed (bert-model)
+$ /home/vicente/Github/NLP-PubMed/.venv/bin/python /home/vicente/Github/NLP-PubMed/MeSH/model.py
+True
+Using device: cuda
+Top-level keys in JSON: ['articles']
+Training set size: 100000
+Top-level keys in JSON: ['documents']
+Loading dataset shards: 100%|██████████████████████████████████████████████████████████████████████████████████████████| 17/17 [00:00<00:00, 90486.25it/s]
+Some weights of BertForSequenceClassification were not initialized from the model checkpoint at microsoft/BiomedNLP-PubMedBERT-base-uncased-abstract and are newly initialized: ['classifier.bias', 'classifier.weight']
+You should probably TRAIN this model on a down-stream task to be able to use it for predictions and inference.
+/home/vicente/Github/NLP-PubMed/MeSH/model.py:18: FutureWarning: `tokenizer` is deprecated and will be removed in version 5.0.0 for `WeightedTrainer.__init__`. Use `processing_class` instead.
+  super().__init__(*args, **kwargs)
+{'loss': 1.4375, 'grad_norm': 3.6498148441314697, 'learning_rate': 4.8403200000000004e-05, 'epoch': 0.16}                                                 
+{'loss': 1.4313, 'grad_norm': 2.7350947856903076, 'learning_rate': 4.68032e-05, 'epoch': 0.32}                                                            
+{'loss': 1.4179, 'grad_norm': 1.3458622694015503, 'learning_rate': 4.52032e-05, 'epoch': 0.48}                                                            
+{'loss': 1.4235, 'grad_norm': 3.42938494682312, 'learning_rate': 4.36032e-05, 'epoch': 0.64}                                                              
+{'loss': 1.421, 'grad_norm': 2.0724594593048096, 'learning_rate': 4.20064e-05, 'epoch': 0.8}                                                              
+{'loss': 1.4215, 'grad_norm': 1.6433794498443604, 'learning_rate': 4.04064e-05, 'epoch': 0.96}                                                            
+{'loss': 1.421, 'grad_norm': 3.8051962852478027, 'learning_rate': 3.88064e-05, 'epoch': 1.12}                                                             
+{'loss': 1.4182, 'grad_norm': 2.9897663593292236, 'learning_rate': 3.7206400000000003e-05, 'epoch': 1.28}                                                 
+{'loss': 1.4148, 'grad_norm': 2.4666285514831543, 'learning_rate': 3.56064e-05, 'epoch': 1.44}                                                            
+{'loss': 1.4044, 'grad_norm': 1.5562642812728882, 'learning_rate': 3.40064e-05, 'epoch': 1.6}                                                             
+{'loss': 1.4069, 'grad_norm': 2.348036766052246, 'learning_rate': 3.24064e-05, 'epoch': 1.76}                                                             
+{'loss': 1.3927, 'grad_norm': 0.987154483795166, 'learning_rate': 3.0806400000000004e-05, 'epoch': 1.92}                                                  
+{'loss': 1.4032, 'grad_norm': 2.0583014488220215, 'learning_rate': 2.9209600000000002e-05, 'epoch': 2.08}                                                 
+{'loss': 1.3972, 'grad_norm': 1.918645977973938, 'learning_rate': 2.76096e-05, 'epoch': 2.24}                                                             
+{'loss': 1.402, 'grad_norm': 0.980485737323761, 'learning_rate': 2.60096e-05, 'epoch': 2.4}                                                               
+{'loss': 1.4034, 'grad_norm': 2.434217929840088, 'learning_rate': 2.44096e-05, 'epoch': 2.56}                                                             
+{'loss': 1.4079, 'grad_norm': 1.7961430549621582, 'learning_rate': 2.28096e-05, 'epoch': 2.72}                                                            
+{'loss': 1.3843, 'grad_norm': 2.3758888244628906, 'learning_rate': 2.12128e-05, 'epoch': 2.88}                                                            
+{'loss': 1.3974, 'grad_norm': 1.1282461881637573, 'learning_rate': 1.96128e-05, 'epoch': 3.04}                                                            
+{'loss': 1.3989, 'grad_norm': 1.312266230583191, 'learning_rate': 1.80128e-05, 'epoch': 3.2}                                                              
+{'loss': 1.3997, 'grad_norm': 0.937527596950531, 'learning_rate': 1.64128e-05, 'epoch': 3.36}                                                             
+{'loss': 1.3961, 'grad_norm': 1.0074530839920044, 'learning_rate': 1.4816e-05, 'epoch': 3.52}                                                             
+{'loss': 1.398, 'grad_norm': 1.6853026151657104, 'learning_rate': 1.3216e-05, 'epoch': 3.68}                                                              
+{'loss': 1.4003, 'grad_norm': 1.8494786024093628, 'learning_rate': 1.1616e-05, 'epoch': 3.84}                                                             
+{'loss': 1.3875, 'grad_norm': 1.5281490087509155, 'learning_rate': 1.0016e-05, 'epoch': 4.0}                                                              
+{'loss': 1.3887, 'grad_norm': 1.1123958826065063, 'learning_rate': 8.416e-06, 'epoch': 4.16}                                                              
+{'loss': 1.3862, 'grad_norm': 1.5191404819488525, 'learning_rate': 6.8160000000000005e-06, 'epoch': 4.32}                                                 
+{'loss': 1.4078, 'grad_norm': 1.697428822517395, 'learning_rate': 5.219200000000001e-06, 'epoch': 4.48}                                                   
+{'loss': 1.39, 'grad_norm': 2.178072929382324, 'learning_rate': 3.6192000000000004e-06, 'epoch': 4.64}                                                    
+{'loss': 1.3935, 'grad_norm': 1.8175464868545532, 'learning_rate': 2.0192e-06, 'epoch': 4.8}                                                              
+{'loss': 1.402, 'grad_norm': 0.9154303073883057, 'learning_rate': 4.1920000000000005e-07, 'epoch': 4.96}                                                  
+{'train_runtime': 6655.9513, 'train_samples_per_second': 75.121, 'train_steps_per_second': 2.348, 'train_loss': 1.4049653154296875, 'epoch': 5.0}         
+100%|█████████████████████████████████████████████████████████████████████████████████████████████████████████████| 15625/15625 [1:50:55<00:00,  2.35it/s]
+100%|███████████████████████████████████████████████████████████████████████████████████████████████████████████████████| 625/625 [01:38<00:00,  6.34it/s]
+{'eval_loss': 1.4462697505950928, 'eval_accuracy': 0.0, 'eval_micro_precision': 0.000877413697707471, 'eval_micro_recall': 0.5963522200627897, 'eval_micro_f1': 0.001752249309019338, 'eval_runtime': 99.3499, 'eval_samples_per_second': 201.309, 'eval_steps_per_second': 6.291, 'epoch': 5.0}
+Trainer.tokenizer is now deprecated. You should use Trainer.processing_class instead.
+Map: 100%|█████████████████████████████████████████████████████████████████████████████████████████████████| 10001/10001 [00:03<00:00, 2977.86 examples/s]
+100%|███████████████████████████████████████████████████████████████████████████████████████████████████████████████████| 313/313 [00:28<00:00, 10.94it/s]
+
+
+vicente@vicente-BDLab:~/Github/NLP-PubMed (bert-model)
+$ 
