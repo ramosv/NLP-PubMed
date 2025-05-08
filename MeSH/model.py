@@ -36,8 +36,8 @@ def load_data(file_path):
             pmid = item.get("pmid")
             pmid = str(pmid)
              
-            abstract = item.get("abstractText")
-            title = item.get("title")   
+            abstract = item.get("abstractText") or ""
+            title = item.get("title") or ""
             labels = item.get("meshMajor")
 
             text = title + " " + abstract
@@ -134,8 +134,8 @@ def set_up_predictions(trainer, mlb):
         for items in data["documents"]:
             pmid = items.get("pmid")
             pmid = str(pmid)
-            abstract = items.get("abstractText")
-            title = items.get("title")        
+            abstract = items.get("abstractText") or ""
+            title = items.get("title") or ""
             text = title + " " + abstract
             save_it = (text, pmid)
             data_files[pmid] = save_it
@@ -155,23 +155,22 @@ def set_up_predictions(trainer, mlb):
 
     logits = trainer.predict(judge_dataset).predictions
     probs = 1 / (1 + np.exp(-logits))
-    binary = (probs >= 0.5).astype(int)
 
+    K = 5
+    top_k = np.argsort(probs, axis=1)[:, -K:]
+    binary = np.zeros_like(probs, dtype=int)
+    for i, idxs in enumerate(top_k):
+        binary[i, idxs] = 1
+
+    # get the labels for the top k
     output = {"documents": []}
-    keys = list(data_files.keys())
-    index = 0
-    while index < len(keys):
-        pmid = keys[index]
-        row = binary[index]
+
+    for pmid, row in zip(data_files.keys(), binary):
         labels = []
-        i = 0
-        while i < len(row):
-            val = row[i]
-            if val:
+        for i in range(len(row)):
+            if row[i] == 1:
                 labels.append(mlb.classes_[i])
-            i += 1
         output["documents"].append({"pmid": pmid, "labels": labels})
-        index += 1
 
     with open('predictions.json', 'w') as f:
         json.dump(output, f)

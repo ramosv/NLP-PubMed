@@ -88,18 +88,34 @@ The model has high recall but very low precision. After discussing with classmat
 The data is dense with significant variation, so I explored using the journal as a high-level hierarchy to assess whether certain words appear more frequently in specific journals.
 
 Here are plots showing the most common journals and their top words:
-- [plot1](plots/1.png)
-- [plot2](plots/2.png)
-- [plot3](plots/3.png)
-- [plot4](plots/4.png)
-- [plot5](plots/5.png)
-- [plot6](plots/6.png)
-- [plot7](plots/7.png)
+
+![plot1](plots/1.png)
+
+![plot2](plots/2.png)
+
+![plot3](plots/3.png)
+
+![plot4](plots/4.png)
+
+![plot5](plots/5.png)
+
+![plot6](plots/6.png)
+
+[!plot7](plots/7.png)
+
 
 I will continue working on this by incorporating the journal hierarchy into the training process, as a way to help the model make more informed predictions.
 
+### Change log
+
+- Branch name: labels-iteration:
+    - After seeing the results from the last predictions, realized I was only adding the top label.
+    - The updated implementation will iterate through the the labels and select the top k labels.
+    - Model is being trained as we speak and should produce an output in the next hour or so.
+
 ### References
-- BERT model: `bert-base-uncased
+
+- BERT model: `bert-base-uncased`
 
 
 
