@@ -4,7 +4,7 @@ from pathlib import Path
 from sklearn.preprocessing import MultiLabelBinarizer
 from transformers import BertTokenizerFast, BertForSequenceClassification, Trainer, TrainingArguments, DataCollatorWithPadding
 from datasets import Features, Value, Sequence, Dataset
-from utils import compute_metrics, generate_examples, make_tokenize
+from utils import compute_metrics, generate_examples, make_tokenize, label_cut_off
 import numpy as np
 
 import torch
@@ -36,8 +36,8 @@ def load_data(file_path):
             pmid = item.get("pmid")
             pmid = str(pmid)
              
-            abstract = item.get("abstractText")
-            title = item.get("title")   
+            abstract = item.get("abstractText") or ""
+            title = item.get("title") or ""
             labels = item.get("meshMajor")
 
             text = title + " " + abstract
@@ -117,7 +117,7 @@ def set_up():
 
     return bert_model, train_dataset, test_dataset,tokenizer, collector, mlb
 
-def set_up_predictions(trainer, mlb):
+def set_up_predictions(trainer, mlb, thresholds):
     """
     { "documents": [
     {"pmid": "16854706", "title": "The use of seat belts in cars with smart seat belt reminders--results of an observational study.", "abstractText": "UNLABELLED: Recently, smart seat belt reminders (SBR) have been introduced in cars. By increasingly reminding drivers and passengers if they are not using the seat belt, the intention is to increase the belt use to almost 100%. OBJECTIVE: The objective was to study if there were differences in driver's seat belt use between cars with and without SBR. METHODS: Drivers of cars with and without SBR were observed concerning seat belt use. The case (cars with SBR) and the control group (cars without SBR) were similar in all major aspects except SBR. In all, more than 3,000 drivers were observed in five cities in Sweden. RESULTS: In cars without SBR, 82.3 percent of the drivers used the seat belt, while in cars with SBR, the seat belt use was 98.9 percent. The difference was significant. In cars with mild reminders, the use was 93.0 percent. CONCLUSION: It is concluded, that if the results can be generalised to the whole car population this would have a dramatic impact on the number of fatally and seriously injured car occupants."},
@@ -134,8 +134,8 @@ def set_up_predictions(trainer, mlb):
         for items in data["documents"]:
             pmid = items.get("pmid")
             pmid = str(pmid)
-            abstract = items.get("abstractText")
-            title = items.get("title")        
+            abstract = items.get("abstractText") or ""
+            title = items.get("title") or ""
             text = title + " " + abstract
             save_it = (text, pmid)
             data_files[pmid] = save_it
@@ -155,23 +155,14 @@ def set_up_predictions(trainer, mlb):
 
     logits = trainer.predict(judge_dataset).predictions
     probs = 1 / (1 + np.exp(-logits))
-    binary = (probs >= 0.5).astype(int)
 
     output = {"documents": []}
-    keys = list(data_files.keys())
-    index = 0
-    while index < len(keys):
-        pmid = keys[index]
-        row = binary[index]
+    for pmid, p_row in zip(data_files.keys(), probs):
         labels = []
-        i = 0
-        while i < len(row):
-            val = row[i]
-            if val:
-                labels.append(mlb.classes_[i])
-            i += 1
+        for i, term in enumerate(mlb.classes_):
+            if p_row[i] >= thresholds[term]:
+                labels.append(term)
         output["documents"].append({"pmid": pmid, "labels": labels})
-        index += 1
 
     with open('predictions.json', 'w') as f:
         json.dump(output, f)
@@ -209,17 +200,19 @@ def train():
 
     trainer.train()
     print(trainer.evaluate())
-    set_up_predictions(trainer, mlb)
+
+    dev_out = trainer.predict(test_ds)
+    probs_dev = 1 / (1 + np.exp(-dev_out.predictions))
+    labels_dev = dev_out.label_ids
+    thresholds = label_cut_off(mlb, probs_dev, labels_dev)
+
+    set_up_predictions(trainer, mlb, thresholds)
 
 def evaluate():
     model, train_ds, test_ds, tokenizer, collector, mlb = set_up()
 
-    checkpoint_dir = "./results/checkpoint-9375"
-    model = BertForSequenceClassification.from_pretrained(
-        checkpoint_dir,
-        num_labels=len(mlb.classes_),
-        problem_type="multi_label_classification"
-    ).to(model.device)
+    checkpoint_dir = "/home/vicente/Github/NLP-PubMed/results/checkpoint-15625"
+    model = BertForSequenceClassification.from_pretrained(checkpoint_dir,num_labels=len(mlb.classes_),problem_type="multi_label_classification").to(model.device)
 
     training_args = TrainingArguments(
         output_dir='./results',
@@ -228,7 +221,6 @@ def evaluate():
         per_device_eval_batch_size=32,
         fp16=True
     )
-
     trainer = Trainer(
         model=model,
         args=training_args,
@@ -238,8 +230,15 @@ def evaluate():
         compute_metrics=compute_metrics
     )
 
-    print(trainer.evaluate())
-    set_up_predictions(trainer, mlb)
+    metrics = trainer.evaluate()
+    print("Evaluation metrics:", metrics)
+    dev_out = trainer.predict(test_ds)
+    probs_dev = 1 / (1 + np.exp(-dev_out.predictions))
+    labels_dev = dev_out.label_ids
+    thresholds = label_cut_off(mlb, probs_dev, labels_dev)
+
+    set_up_predictions(trainer, mlb, thresholds)
 
 if __name__ == "__main__":
-    train()
+    #train()
+    evaluate()

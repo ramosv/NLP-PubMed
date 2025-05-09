@@ -72,6 +72,7 @@ Labels are thresholded at sigmoid ≥ 0.5 and converted using the `MultiLabelBin
 
 Evaluation on the 20,000-article test set (with 3 epochs):
 
+First run:
 ```bash
 {'eval_loss': 1.4463,
  'eval_accuracy': 0.0,
@@ -80,26 +81,56 @@ Evaluation on the 20,000-article test set (with 3 epochs):
  'eval_micro_f1': 0.00175225
 }
 ```
+- Initially, every prediction was "human". The mistake was not applying the sigmoid to the logits.
 
-Note: Initially, every prediction was "human". The mistake was not applying the sigmoid to the logits.
-
-The model has high recall but very low precision. After discussing with classmates, I realized many were facing similar issues, were accuracy was very low and predicitons were all over the place. I went back and conducted further data exploration see `data.ipynb`.
+- The model has high recall but very low precision. After discussing with classmates, I realized many were facing similar issues, were accuracy was very low and predicitons were all over the place. I went back and conducted further data exploration see `data.ipynb`.
 
 The data is dense with significant variation, so I explored using the journal as a high-level hierarchy to assess whether certain words appear more frequently in specific journals.
 
+Second run:
+```bash
+{
+  "eval_loss": 0.6812,
+  "eval_precision": 0.0003481,
+  "eval_recall": 0.3348,
+  "eval_f1": 0.0006359,
+  "eval_exact_match_accuracy": 0.0,
+  "eval_sample_accuracy": 0.5966
+}
+```
+
+Between the two runs here is what changed:
+
+- Fixed the evaluation logic to apply `sigmoid(logits)` before thresholding (so we no longer predicted only “Humans”).  
+- Tuned a separate cutoff for each MeSH term on the dev split, rather than using a global 0.5.  
+- Added two new accuracy metrics: **exact-match** (all labels correct) and **sample-level** (percent of correct labels per article). 
+
+The model still shows very high recall on frequent terms but extremely low precision, highlighting the need for further label-space reduction or loss re-weighting.
+
+## Data plots
+
 Here are plots showing the most common journals and their top words:
-- [plot1](plots/1.png)
-- [plot2](plots/2.png)
-- [plot3](plots/3.png)
-- [plot4](plots/4.png)
-- [plot5](plots/5.png)
-- [plot6](plots/6.png)
-- [plot7](plots/7.png)
+
+![plot1](plots/1.png)
+
+![plot2](plots/2.png)
+
+![plot3](plots/3.png)
+
+![plot4](plots/4.png)
+
+![plot5](plots/5.png)
+
+![plot6](plots/6.png)
+
+[!plot7](plots/7.png)
+
 
 I will continue working on this by incorporating the journal hierarchy into the training process, as a way to help the model make more informed predictions.
 
 ### References
-- BERT model: `bert-base-uncased
+
+- BERT model: `bert-base-uncased`
 
 
 
