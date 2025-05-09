@@ -148,6 +148,8 @@ venv.bak/
 # mkdocs documentation
 /site
 
+
+!predictions.json
 # mypy
 .mypy_cache/
 .dmypy.json
