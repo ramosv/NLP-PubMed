@@ -150,6 +150,9 @@ venv.bak/
 
 
 !predictions.json
+!predictions_pruned.json
+!predictions_truncated.json
+!predictions_test_dynamic.json
 # mypy
 .mypy_cache/
 .dmypy.json
@@ -157,6 +160,7 @@ dmypy.json
 
 # Pyre type checker
 .pyre/
+results01/
 
 # pytype static type analyzer
 .pytype/
