@@ -2,13 +2,15 @@ import json
 import os
 from pathlib import Path
 from sklearn.preprocessing import MultiLabelBinarizer
-from transformers import BertTokenizerFast, BertForSequenceClassification, Trainer, TrainingArguments, DataCollatorWithPadding
+from transformers import BertTokenizerFast, BertForSequenceClassification, TrainingArguments, DataCollatorWithPadding
 from datasets import Features, Value, Sequence, Dataset
-from utils import compute_metrics, generate_examples, make_tokenize, label_cut_off
+from utils import compute_metrics, generate_examples, make_tokenize, label_cut_off, WeightedTrainer
 import numpy as np
+import pandas as pd
 
 import torch
 print(torch.cuda.is_available())
+
 
 #data format from json file
 """
@@ -59,6 +61,10 @@ def set_up():
     test_data = load_data(test_set_path)
     print(f"Test set size: {len(test_data)}")
 
+
+    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+    print(f"Using device: {device}")
+
     # get the labels out of the dicts
     train_labels = []
     for pmic, (text, labels) in train_data.items():
@@ -73,6 +79,9 @@ def set_up():
     mlb = MultiLabelBinarizer()
     train_y = mlb.fit_transform(train_labels)
     test_y = mlb.transform(test_labels)
+    label_counts = train_y.sum(axis=0)
+    neg_counts = train_y.shape[0] - label_counts
+    pos_weight = torch.tensor(neg_counts / (label_counts + 1e-6),dtype=torch.float32).to(device)
 
     train_texts = []
     for pmic, (text, labels) in train_data.items():
@@ -109,13 +118,10 @@ def set_up():
 
     size = len(mlb.classes_)
 
-    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-    print(f"Using device: {device}")
-
     bert_model = BertForSequenceClassification.from_pretrained('bert-base-uncased', num_labels=size, problem_type='multi_label_classification')
     bert_model.to(device)
 
-    return bert_model, train_dataset, test_dataset,tokenizer, collector, mlb
+    return bert_model, train_dataset, test_dataset,tokenizer, collector, mlb, pos_weight
 
 def set_up_predictions(trainer, mlb, thresholds):
     """
@@ -169,7 +175,7 @@ def set_up_predictions(trainer, mlb, thresholds):
 
 def train():
     
-    model, train_ds, test_ds, tokenizer, collector, mlb = set_up()
+    model, train_ds, test_ds, tokenizer, collector, mlb, pos_weight = set_up()
 
     os.makedirs('./results', exist_ok=True)
     training_args = TrainingArguments(
@@ -187,15 +193,15 @@ def train():
         gradient_checkpointing=True
     )
 
-
-    trainer = Trainer(
+    trainer = WeightedTrainer(
         model=model,
         args=training_args,
         train_dataset=train_ds,
         eval_dataset=test_ds,
         tokenizer=tokenizer,
         data_collator=collector,
-        compute_metrics=compute_metrics
+        compute_metrics=compute_metrics,
+        pos_weight=pos_weight,
     )
 
     trainer.train()
@@ -209,7 +215,7 @@ def train():
     set_up_predictions(trainer, mlb, thresholds)
 
 def evaluate():
-    model, train_ds, test_ds, tokenizer, collector, mlb = set_up()
+    model, train_ds, test_ds, tokenizer, collector, mlb, pos_weight = set_up()
 
     checkpoint_dir = "/home/vicente/Github/NLP-PubMed/results/checkpoint-15625"
     model = BertForSequenceClassification.from_pretrained(checkpoint_dir,num_labels=len(mlb.classes_),problem_type="multi_label_classification").to(model.device)
@@ -221,13 +227,15 @@ def evaluate():
         per_device_eval_batch_size=32,
         fp16=True
     )
-    trainer = Trainer(
+
+    trainer = WeightedTrainer(
         model=model,
         args=training_args,
         eval_dataset=test_ds,
         tokenizer=tokenizer,
         data_collator=collector,
-        compute_metrics=compute_metrics
+        compute_metrics=compute_metrics,
+        pos_weight=pos_weight          
     )
 
     metrics = trainer.evaluate()
@@ -238,7 +246,8 @@ def evaluate():
     thresholds = label_cut_off(mlb, probs_dev, labels_dev)
 
     set_up_predictions(trainer, mlb, thresholds)
+    
 
 if __name__ == "__main__":
-    #train()
-    evaluate()
+    train()
+    #evaluate()

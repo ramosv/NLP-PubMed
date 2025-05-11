@@ -1,75 +1,62 @@
+import json
+from pathlib import Path
+from collections import Counter
 
-from sklearn.metrics import precision_recall_fscore_support
-from sklearn.metrics import f1_score
-import numpy as np
+import pandas as pd
 
-def generate_examples(texts, labels):
-    for i, text in enumerate(texts):
-        label_integers = labels[i].tolist()
-        label_floats = []
+def prune_predictions(
+    predictions_path: Path,
+    mesh_major_journal_path: Path,
+    journal_quartiles_path: Path,
+    output_path: Path
+):
+    # 1) load your big-predictions.json
+    with open(predictions_path, "r") as f:
+        preds = json.load(f)["documents"]
 
-        for num in label_integers:
-            if num not in [0, 1]:
-                raise ValueError(f"Label should be binary (0,1). Got: {num}")
+    # 2) load mesh_major_journal.csv
+    mmj = pd.read_csv(mesh_major_journal_path)
+    term_journal   = dict(zip(mmj.word,            mmj.journal))
+    term_in_journal = dict(zip(mmj.word,           mmj.in_that_journal))
 
-            label_floats.append(float(num))
-        
-        yield {"text": text, "labels": label_floats}
+    # 3) load journal_quartiles.csv
+    jq = pd.read_csv(journal_quartiles_path)
+    journal_median = dict(zip(jq.journal, jq.median))
+    global_median  = int(jq.median.median())
 
-def compute_metrics(pred):
-    logits = pred.predictions
-    labels = pred.label_ids
+    pruned = []
+    for doc in preds:
+        pmid   = doc["pmid"]
+        labels = doc["labels"]
 
-    probs = 1 / (1 + np.exp(-logits)) 
-    preds = (probs >= 0.5).astype(int)
-    precision, recall, f1, _ = precision_recall_fscore_support(labels, preds, average='macro', zero_division=0)
+        # guess the journal by vote over term_journal:
+        journals = [term_journal[l] for l in labels if l in term_journal]
+        if journals:
+            guessed_journal = Counter(journals).most_common(1)[0][0]
+            K = journal_median.get(guessed_journal, global_median)
+        else:
+            guessed_journal = None
+            K = global_median
 
-    exact_match_accuracy = (preds == labels).all(axis=1).mean()
-    sample_accs = []
+        # sort by how common each term is in that journal
+        labels_sorted = sorted(
+            labels,
+            key=lambda l: term_in_journal.get(l, 0),
+            reverse=True
+        )
 
-    for true_row, pred_row in zip(labels, preds):
-        true_count = true_row.sum()
+        pruned_labels = labels_sorted[:K]
+        pruned.append({"pmid": pmid, "labels": pruned_labels})
 
-        if true_count > 0:
-            correct = np.logical_and(true_row, pred_row).sum()
-            sample_accs.append(correct / true_count)
+    # 4) write out the pruned set
+    with open(output_path, "w") as f:
+        json.dump({"documents": pruned}, f, separators=(",",":"))
 
-    if sample_accs:
-        sample_accuracy = np.mean(sample_accs)
-    else:
-        sample_accuracy = 0.0
-
-    # return a dictionary with the metrics
-    return {
-        'precision': precision,
-        'recall': recall,
-        'f1': f1,
-        'exact_match_accuracy': exact_match_accuracy,
-        'sample_accuracy': sample_accuracy
-    }
-
-def label_cut_off(mlb, probs_dev, labels_dev):
-    #from 0.1 to 0.9 in steps of 0.05
-    cands = np.linspace(0.1, 0.9, 17)
-
-    best_thresholds = {}
-    for j, term in enumerate(mlb.classes_):
-        best_f1, best_t = -1, 0.5
-
-        for t in cands:
-            preds_j = (probs_dev[:, j] >= t).astype(int)
-            f1 = f1_score(labels_dev[:, j], preds_j, zero_division=0)
-
-            if f1 > best_f1:
-                best_f1, best_t = f1, t
-
-        best_thresholds[term] = best_t
-
-    return best_thresholds
-
-# we need to nested tokenize so that it can pass the tokenizer for that instance and not the entire dataset
-# or turn into a class.
-def make_tokenize(tokenizer):
-    def tokenize(batch):
-        return tokenizer(batch["text"],max_length=512, truncation=True, padding=False)
-    return tokenize
+if __name__ == "__main__":
+    root = Path("/home/vicente/Github/NLP-PubMed/MeSH")
+    prune_predictions(
+        predictions_path         = root.parent / "predictions04.json",
+        mesh_major_journal_path  = root / "mesh_major_journal.csv",
+        journal_quartiles_path   = root / "journal_quartiles.csv",
+        output_path              = root / "predictions_pruned.json"
+    )
